@@ -580,7 +580,7 @@ fn parseGltfJson(self: *Gltf, gltf_json: []const u8) !void {
                     var primitive: Primitive = .{};
 
                     if (prim_item.object.get("mode")) |mode| {
-                        primitive.mode = @as(Mode, @enumFromInt(mode.integer));
+                        primitive.mode = @as(Mode, @fromBackingInt(@intCast(mode.integer)));
                     }
 
                     if (prim_item.object.get("indices")) |indices| {
@@ -698,7 +698,7 @@ fn parseGltfJson(self: *Gltf, gltf_json: []const u8) !void {
             };
 
             if (object.get("componentType")) |component_type| {
-                accessor.component_type = @as(ComponentType, @enumFromInt(component_type.integer));
+                accessor.component_type = @as(ComponentType, @fromBackingInt(@intCast(component_type.integer)));
             } else {
                 panic("Accessor's componentType is missing.", .{});
             }
@@ -778,7 +778,7 @@ fn parseGltfJson(self: *Gltf, gltf_json: []const u8) !void {
             }
 
             if (object.get("target")) |target| {
-                buffer_view.target = @as(Target, @enumFromInt(target.integer));
+                buffer_view.target = @as(Target, @fromBackingInt(@intCast(target.integer)));
             }
 
             if (object.get("extras")) |extras| {
@@ -1204,19 +1204,19 @@ fn parseGltfJson(self: *Gltf, gltf_json: []const u8) !void {
             var sampler = TextureSampler{};
 
             if (object.get("magFilter")) |mag_filter| {
-                sampler.mag_filter = @as(MagFilter, @enumFromInt(mag_filter.integer));
+                sampler.mag_filter = @as(MagFilter, @fromBackingInt(@intCast(mag_filter.integer)));
             }
 
             if (object.get("minFilter")) |min_filter| {
-                sampler.min_filter = @as(MinFilter, @enumFromInt(min_filter.integer));
+                sampler.min_filter = @as(MinFilter, @fromBackingInt(@intCast(min_filter.integer)));
             }
 
             if (object.get("wrapS")) |wrap_s| {
-                sampler.wrap_s = @as(WrapMode, @enumFromInt(wrap_s.integer));
+                sampler.wrap_s = @as(WrapMode, @fromBackingInt(@intCast(wrap_s.integer)));
             }
 
             if (object.get("wrapt")) |wrap_t| {
-                sampler.wrap_t = @as(WrapMode, @enumFromInt(wrap_t.integer));
+                sampler.wrap_t = @as(WrapMode, @fromBackingInt(@intCast(wrap_t.integer)));
             }
 
             if (object.get("extras")) |extras| {
@@ -1373,7 +1373,7 @@ test "gltf.parseGlb" {
     const expectEqualSlices = std.testing.expectEqualSlices;
 
     // This is the '.glb' file.
-    const glb_buf = try std.fs.cwd().readFileAllocOptions(allocator, "test-samples/box_binary/Box.glb", 512_000, null, .@"4", null);
+    const glb_buf = try std.Io.Dir.cwd().readFileAllocOptions(std.testing.io, "test-samples/box_binary/Box.glb", allocator, .limited(512_000), .@"4", null);
     defer allocator.free(glb_buf);
 
     var gltf = Gltf.init(allocator);
@@ -1415,14 +1415,7 @@ test "gltf.parseGlbTextured" {
     const expectEqualSlices = std.testing.expectEqualSlices;
 
     // This is the '.glb' file.
-    const glb_buf = try std.fs.cwd().readFileAllocOptions(
-        allocator,
-        "test-samples/box_binary_textured/BoxTextured.glb",
-        512_000,
-        null,
-        .@"4",
-        null
-    );
+    const glb_buf = try std.Io.Dir.cwd().readFileAllocOptions(std.testing.io, "test-samples/box_binary_textured/BoxTextured.glb", allocator, .limited(512_000), .@"4", null);
     defer allocator.free(glb_buf);
 
     var gltf = Gltf.init(allocator);
@@ -1430,11 +1423,7 @@ test "gltf.parseGlbTextured" {
 
     try gltf.parseGlb(glb_buf);
 
-    const test_to_check = try std.fs.cwd().readFileAlloc(
-        allocator,
-        "test-samples/box_binary_textured/test.png",
-        512_000
-    );
+    const test_to_check = try std.Io.Dir.cwd().readFileAlloc(std.testing.io, "test-samples/box_binary_textured/test.png", allocator, .limited(512_000));
     defer allocator.free(test_to_check);
 
     const data = gltf.data.images[0].data.?;
@@ -1448,14 +1437,7 @@ test "gltf.parse" {
 
     // This is the '.gltf' file, a json specifying what information is in the
     // model and how to retrieve it inside binary file(s).
-    const buf = try std.fs.cwd().readFileAllocOptions(
-        allocator,
-        "test-samples/rigged_simple/RiggedSimple.gltf",
-        512_000,
-        null,
-        .@"4",
-        null
-    );
+    const buf = try std.Io.Dir.cwd().readFileAllocOptions(std.testing.io, "test-samples/rigged_simple/RiggedSimple.gltf", allocator, .limited(512_000), .@"4", null);
     defer allocator.free(buf);
 
     var gltf = Gltf.init(allocator);
@@ -1488,14 +1470,7 @@ test "gltf.parse (cameras)" {
     const allocator = std.testing.allocator;
     const expectEqual = std.testing.expectEqual;
 
-    const buf = try std.fs.cwd().readFileAllocOptions(
-        allocator,
-        "test-samples/cameras/Cameras.gltf",
-        512_000,
-        null,
-        .@"4",
-        null
-    );
+    const buf = try std.Io.Dir.cwd().readFileAllocOptions(std.testing.io, "test-samples/cameras/Cameras.gltf", allocator, .limited(512_000), .@"4", null);
     defer allocator.free(buf);
 
     var gltf = Gltf.init(allocator);
@@ -1527,26 +1502,11 @@ test "gltf.getDataFromBufferView" {
     const allocator = std.testing.allocator;
     const expectEqualSlices = std.testing.expectEqualSlices;
 
-    const buf = try std.fs.cwd().readFileAllocOptions(
-        allocator,
-        "test-samples/box/Box.gltf",
-        512_000,
-        null,
-        .@"4",
-        null
-    );
+    const buf = try std.Io.Dir.cwd().readFileAllocOptions(std.testing.io, "test-samples/box/Box.gltf", allocator, .limited(512_000), .@"4", null);
     defer allocator.free(buf);
 
     // This is the '.bin' file containing all the gltf underneath data.
-    const binary = try std.fs.cwd().readFileAllocOptions(
-        allocator,
-        "test-samples/box/Box0.bin",
-        5_000_000,
-        null,
-        // From gltf spec, data from BufferView should be 4 bytes aligned.
-        .@"4",
-        null,
-    );
+    const binary = try std.Io.Dir.cwd().readFileAllocOptions(std.testing.io, "test-samples/box/Box0.bin", allocator, .limited(5_000_000), .@"4", null);
     defer allocator.free(binary);
 
     var gltf = Gltf.init(allocator);
@@ -1586,14 +1546,7 @@ test "gltf.parse (lights)" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
 
-    const buf = try std.fs.cwd().readFileAllocOptions(
-        allocator,
-        "test-samples/khr_lights_punctual/Lights.gltf",
-        512_000,
-        null,
-        .@"4",
-        null
-    );
+    const buf = try std.Io.Dir.cwd().readFileAllocOptions(std.testing.io, "test-samples/khr_lights_punctual/Lights.gltf", allocator, .limited(512_000), .@"4", null);
     defer allocator.free(buf);
 
     var gltf = Gltf.init(allocator);
